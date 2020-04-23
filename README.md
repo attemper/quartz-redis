@@ -27,16 +27,12 @@ org.quartz.jobStore.port = <default is 6379>
 org.quartz.jobStore.database = <default is 0>
 
 # see https://lettuce.io/core/release/reference/index.html#redisuri.uri-syntax
-#redis :// [: password@] host [: port] [/ database][? [timeout=timeout[d|h|m|s|ms|us|ns]] [&_database=database_]]
-#rediss :// [: password@] host [: port] [/ database][? [timeout=timeout[d|h|m|s|ms|us|ns]] [&_database=database_]]
-#redis-socket :// path [?[timeout=timeout[d|h|m|s|ms|us|ns]][&_database=database_]]
-#redis-sentinel :// [: password@] host1[: port1] [, host2[: port2]] [, hostN[: portN]] [/ database][?[timeout=timeout[d|h|m|s|ms|us|ns]] [&_sentinelMasterId=sentinelMasterId_] [&_database=database_]]
-org.quartz.jobStore.uri = <you can use it replace host/password/port/database>
+org.quartz.jobStore.uri = <you can use it replace host/password/port/database,like redis://localhost>
 
-# redis cluster
+# redis cluster mode
 org.quartz.jobStore.clusterNodes = <using comma-delimited list uri>
 
-# redis sentinel
+# redis sentinel mode
 org.quartz.jobStore.sentinelNodes = <using comma-delimited list uri>
 
 # redis sentinel matser name
@@ -53,7 +49,7 @@ In the quartz,I add some functions to satisfy my requirements
 However, you can also use [Quartz Scheduler](http://quartz-scheduler.org/)  
 - [`lettuce-core@io.lettuce`](https://github.com/lettuce-io/lettuce-core)  
 A redis client which used by spring-boot2.x  
-- [`jackson-databind`@com.fasterxml.jackson.core]
+- `jackson-databind@com.fasterxml.jackson.core`  
 Serialize and deserialize job/trigger/calendar via it
 
 ```xml
