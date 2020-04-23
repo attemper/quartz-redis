@@ -47,7 +47,7 @@ org.quartz.jobStore.ssl = <默认值为false>
   - clusterNodes
   - sentinelNodes and sentinelMaster
 
-## Dependencies
+## 依赖
 `quartz-redis` 依赖下列项目
 - [`quartz-core@com.github.attemper`](https://github.com/attemper/quartz)  
 我Fork了quartz，为了满足我司业务需求，添加了相关功能  
