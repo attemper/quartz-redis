@@ -1,0 +1,75 @@
+# quartz-redis
+
+A JobStore of [Quartz Scheduler](http://quartz-scheduler.org/) using Redis that supports data storage and distributed lock.
+
+## Features
+- Support redis's distributed lock
+- Support redis's cluster and sentinel mode
+
+## Configurations
+To use quartz-redis,you can config like the following properties in `quartz.properties`. 
+If you want to use it in spring-boot apps, it's the same configurations in `.yml` or `.properties`
+
+```
+# job store class
+org.quartz.jobStore.class = com.github.quartz.impl.redisjobstore.RedisJobStore
+
+# redis host (optional)
+org.quartz.jobStore.host = <default is localhost>
+
+# redis password (optional)
+org.quartz.jobStore.password = <default is null>
+
+# redis port (optional)
+org.quartz.jobStore.port = <default is 6379>
+
+# redis database (optional)
+org.quartz.jobStore.database = <default is 0>
+
+# see https://lettuce.io/core/release/reference/index.html#redisuri.uri-syntax
+#redis :// [: password@] host [: port] [/ database][? [timeout=timeout[d|h|m|s|ms|us|ns]] [&_database=database_]]
+#rediss :// [: password@] host [: port] [/ database][? [timeout=timeout[d|h|m|s|ms|us|ns]] [&_database=database_]]
+#redis-socket :// path [?[timeout=timeout[d|h|m|s|ms|us|ns]][&_database=database_]]
+#redis-sentinel :// [: password@] host1[: port1] [, host2[: port2]] [, hostN[: portN]] [/ database][?[timeout=timeout[d|h|m|s|ms|us|ns]] [&_sentinelMasterId=sentinelMasterId_] [&_database=database_]]
+org.quartz.jobStore.uri = <you can use it replace host/password/port/database>
+
+# redis cluster
+org.quartz.jobStore.clusterNodes = <using comma-delimited list uri>
+
+# redis sentinel
+org.quartz.jobStore.sentinelNodes = <using comma-delimited list uri>
+
+# redis sentinel matser name
+org.quartz.jobStore.sentinelMaster = <master node name>
+
+# enable ssl or not (optional)
+org.quartz.jobStore.ssl = <default is false>
+```
+
+## Dependencies
+`quartz-redis` depends on the flowing project
+- [`quartz-core@com.github.attemper`](https://github.com/attemper/quartz)  
+In the quartz,I add some functions to satisfy my requirements  
+However, you can also use [Quartz Scheduler](http://quartz-scheduler.org/)  
+- [`lettuce-core@io.lettuce`](https://github.com/lettuce-io/lettuce-core)  
+A redis client which used by spring-boot2.x  
+- [`jackson-databind`@com.fasterxml.jackson.core]
+Serialize and deserialize job/trigger/calendar via it
+
+```xml
+<dependency>
+	<groupId>com.github.attemper</groupId>
+	<artifactId>quartz-core</artifactId>
+	<version>2.3.2.2</version>
+</dependency>
+<dependency>
+	<groupId>io.lettuce</groupId>
+	<artifactId>lettuce-core</artifactId>
+	<version>5.x</version>
+</dependency>
+<dependency>
+	<groupId>com.fasterxml.jackson.core</groupId>
+	<artifactId>jackson-databind</artifactId>
+	<version>2.x</version>
+</dependency>
+```
