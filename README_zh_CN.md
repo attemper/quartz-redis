@@ -1,6 +1,11 @@
 # quartz-redis
 
-使用Redis来作为[Quartz Scheduler](http://quartz-scheduler.org/)的分布式存储介质，并使用分布式锁来保证任务同一时刻不重复执行
+使用Redis来作为[Quartz Scheduler](http://quartz-scheduler.org/)的分布式存储介质，并使用分布式锁来保证任务同一时刻不重复执行 [English](./README.md)
+
+**使用的项目**
+>👉 Attemper: 分布式多租户的支持流程编排的任务调度平台 👈
+>>[Github](https://github.com/attemper/attemper)  
+>>[Gitee](https://gitee.com/attemper/attemper)
 
 ## 特点
 - 支持分布式锁

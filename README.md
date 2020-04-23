@@ -1,6 +1,12 @@
 # quartz-redis
 
-A JobStore of [Quartz Scheduler](http://quartz-scheduler.org/) using Redis that supports data storage and distributed lock.
+>A JobStore of [Quartz Scheduler](http://quartz-scheduler.org/) using Redis that supports data storage and distributed lock. [中文](./README_zh_CN.md)
+
+**Used by**
+>👉 Attemper: A distributed,multi-tenancy,job-flow scheduling application 👈
+>>[Github](https://github.com/attemper/attemper)  
+>>[Gitee](https://gitee.com/attemper/attemper)
+
 
 ## Features
 - Support redis's distributed lock
