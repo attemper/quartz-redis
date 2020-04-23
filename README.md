@@ -42,6 +42,12 @@ org.quartz.jobStore.sentinelMaster = <master node name>
 org.quartz.jobStore.ssl = <default is false>
 ```
 
+- you should config one of
+  - host,password,port and database
+  - uri
+  - clusterNodes
+  - sentinelNodes and sentinelMaster
+
 ## Dependencies
 `quartz-redis` depends on the flowing project
 - [`quartz-core@com.github.attemper`](https://github.com/attemper/quartz)  
