@@ -13,6 +13,16 @@
 - Support redis's cluster and sentinel mode
 
 ## Configurations
+- Add dependency to `pom.xml`
+``` xml
+<dependency>
+	<groupId>com.github.attemper</groupId>
+	<artifactId>quartz-redis</artifactId>
+	<version>0.9.1</version>
+</dependency>
+```
+
+- Config `org.quartz.jobStore.xxx`
 To use quartz-redis,you can config like the following properties in `quartz.properties`. 
 If you want to use it in spring-boot apps, it's the same configurations in `.yml` or `.properties`
 

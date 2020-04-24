@@ -12,6 +12,16 @@
 - 支持集群和哨兵模式
 
 ## 配置
+- 在`pom.xml`添加依赖
+``` xml
+<dependency>
+	<groupId>com.github.attemper</groupId>
+	<artifactId>quartz-redis</artifactId>
+	<version>0.9.1</version>
+</dependency>
+```
+
+- 配置`org.quartz.jobStore.xxx`
 使用quartz-redis，将下列配置配到`quartz.properties`文件中。若系统是spring-boot项目，也适用`.yml` 或 `.properties`
 
 ```
@@ -47,10 +57,10 @@ org.quartz.jobStore.ssl = <默认值为false>
 ```
 
 - 只需配置其一
-  - host,password,port and database
+  - host,password,port和database
   - uri
   - clusterNodes
-  - sentinelNodes and sentinelMaster
+  - sentinelNodes和sentinelMaster
 
 ## 依赖
 `quartz-redis` 依赖下列项目
