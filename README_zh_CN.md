@@ -12,7 +12,7 @@
 - 支持集群和哨兵模式
 
 ## 配置
-使用quartz-redis，将下列配置配到`quartz.properties`文件中。若系统是spring-boot项目，也适用`.yml` or `.properties`
+使用quartz-redis，将下列配置配到`quartz.properties`文件中。若系统是spring-boot项目，也适用`.yml` 或 `.properties`
 
 ```
 # job store class

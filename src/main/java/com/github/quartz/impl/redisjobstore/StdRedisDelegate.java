@@ -588,7 +588,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
             }
         }
         list.sort(Comparator.comparing((Map<String, String> o) -> o.get(FIELD_NEXT_FIRE_TIME))
-                .thenComparing(o -> o.get(FIELD_PRIORITY)).reversed());
+                .thenComparing(o -> o.get(FIELD_PRIORITY), Comparator.reverseOrder()));
 
         Iterator<Map<String, String>> it = list.iterator();
 
@@ -1551,16 +1551,29 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
         if (maxCount < 1)
             maxCount = 1; // we want at least one trigger back.
         List<String> groupWithTriggerNames = zrangebyscore(keyOfWaitingStateTriggers(), noLaterThan);
+        List<Map<String, String>> list = new ArrayList<>(groupWithTriggerNames.size());
         for (int i = 0; i < groupWithTriggerNames.size(); i++) {
-            if (nextTriggers.size() < maxCount) {
-                String[] array = splitValue(groupWithTriggerNames.get(i));
-                TriggerKey triggerKey = new TriggerKey(array[0], array[1]);
-                List<KeyValue<String, String>> keyValues = hmget(keyOfTrigger(triggerKey), FIELD_MISFIRE_INSTRUCTION, FIELD_NEXT_FIRE_TIME);
-                if ("-1".equals(keyValues.get(0).getValue())
-                        || (keyValues.get(1).getValue() != null && Long.parseLong(keyValues.get(1).getValue()) >= noEarlierThan)) {
-                    nextTriggers.add(triggerKey);
+            String[] array = splitValue(groupWithTriggerNames.get(i));
+            TriggerKey triggerKey = new TriggerKey(array[0], array[1]);
+            List<KeyValue<String, String>> keyValues = hmget(keyOfTrigger(triggerKey), FIELD_MISFIRE_INSTRUCTION, FIELD_NEXT_FIRE_TIME, FIELD_PRIORITY);
+            if ("-1".equals(keyValues.get(0).getValue())
+                    || (keyValues.get(1).getValue() != null && Long.parseLong(keyValues.get(1).getValue()) >= noEarlierThan)) {
+                Map<String, String> map = new HashMap<>(5);
+                for (KeyValue<String, String> keyValue : keyValues) {
+                    map.put(keyValue.getKey(), keyValue.getValue());
                 }
+                map.put(FIELD_TRIGGER_NAME, array[0]);
+                map.put(FIELD_TRIGGER_GROUP, array[1]);
+                list.add(map);
             }
+        }
+        list.sort(Comparator.comparing((Map<String, String> o) -> o.get(FIELD_NEXT_FIRE_TIME))
+                .thenComparing(o -> o.get(FIELD_PRIORITY), Comparator.reverseOrder()));
+        for (Map<String, String> map : list) {
+            if (nextTriggers.size() >= maxCount) {
+                break;
+            }
+            nextTriggers.add(new TriggerKey(map.get(FIELD_TRIGGER_NAME), map.get(FIELD_TRIGGER_GROUP)));
         }
 
         return nextTriggers;
