@@ -1713,7 +1713,8 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
     }
 
     public int updateSchedulerState(String theInstanceId, long checkInTime) {
-        return hset(keyOfSchedulerState(theInstanceId), FIELD_LAST_CHECKIN_TIME, String.valueOf(checkInTime)) ? 1 : 0;
+        String key = keyOfSchedulerState(theInstanceId);
+        return exists(key) && hset(key, FIELD_LAST_CHECKIN_TIME, String.valueOf(checkInTime)) ? 1 : 0;
     }
 
     public List<SchedulerStateRecord> selectSchedulerStateRecords() {
