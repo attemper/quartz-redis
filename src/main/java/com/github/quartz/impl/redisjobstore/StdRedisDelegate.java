@@ -448,7 +448,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
     }
 
     protected String joinValue(String elementName, String groupName) {
-        return new StringBuilder(elementName).append(VALUE_DELIMITER).append(groupName).toString();
+        return elementName + VALUE_DELIMITER + groupName;
     }
 
     protected TriggerTypeDelegate findTriggerTypeDelegate(OperableTrigger trigger)  {
@@ -545,7 +545,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      * @return an array of trigger <code>Key</code> s
      */
     public List<TriggerKey> selectTriggersInState(String state) {
-        LinkedList<TriggerKey> list = new LinkedList<TriggerKey>();
+        LinkedList<TriggerKey> list = new LinkedList<>();
 
         Set<String> groupWithNames = smembers(keyOfOtherStateTriggers(state));
         for (String groupWithName : groupWithNames) {
@@ -574,8 +574,8 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
         List<String> groupWithTriggerNames = zrangebyscoreExcluded(keyOfWaitingStateTriggers(), ts);
 
         List<Map<String, String>> list = new ArrayList<>(groupWithTriggerNames.size());
-        for (int i = 0; i < groupWithTriggerNames.size(); i++) {
-            String[] array = splitValue(groupWithTriggerNames.get(i));
+        for (String groupWithTriggerName : groupWithTriggerNames) {
+            String[] array = splitValue(groupWithTriggerName);
             List<KeyValue<String, String>> keyValues = hmget(keyOfTrigger(array[0], array[1]), FIELD_MISFIRE_INSTRUCTION, FIELD_STATE, FIELD_NEXT_FIRE_TIME, FIELD_PRIORITY);
             if (!"-1".equals(keyValues.get(0).getValue()) && state1.equals(keyValues.get(1).getValue())) {
                 Map<String, String> map = new HashMap<>(6);
@@ -618,8 +618,8 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
         int count = 0;
         List<String> groupWithTriggerNames = zrangebyscoreExcluded(keyOfWaitingStateTriggers(), ts);
 
-        for (int i = 0; i < groupWithTriggerNames.size(); i++) {
-            String[] array = splitValue(groupWithTriggerNames.get(i));
+        for (String groupWithTriggerName : groupWithTriggerNames) {
+            String[] array = splitValue(groupWithTriggerName);
             List<KeyValue<String, String>> keyValues = hmget(keyOfTrigger(array[0], array[1]), FIELD_MISFIRE_INSTRUCTION, FIELD_STATE);
             if (!"-1".equals(keyValues.get(0).getValue()) && state1.equals(keyValues.get(1).getValue())) {
                 count++;
@@ -649,7 +649,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      */
     public List<OperableTrigger> selectTriggersForRecoveringJobs() {
         long dumId = System.currentTimeMillis();
-        LinkedList<OperableTrigger> list = new LinkedList<OperableTrigger>();
+        LinkedList<OperableTrigger> list = new LinkedList<>();
 
         Set<String> entryIds = smembers(keyOfFiredJobs(instanceId));
         for (String entryId : entryIds) {
@@ -705,14 +705,14 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
         return del(keyOfFiredInstances);
     }
 
-    public int deleteFiredTriggers(String theInstanceId) {
+    public void deleteFiredTriggers(String theInstanceId) {
         String keyOfFiredJobs = keyOfFiredJobs(theInstanceId);
         Set<String> entryIds = smembers(keyOfFiredJobs);
         for (String entryId : entryIds) {
             del(keyOfFiredJob(entryId));
         }
         del(keyOfFiredJobs);
-        return srem(keyOfFiredInstances(), theInstanceId);
+        srem(keyOfFiredInstances(), theInstanceId);
     }
 
     /**
@@ -735,7 +735,6 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      *
      * @param job
      *          the job to insert
-     * @return number of rows inserted
      */
     public void insertJobDetail(JobDetail job) {
         sadd(keyOfJobs(), joinValue(job.getKey()));
@@ -874,7 +873,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      */
     public Set<JobKey> selectJobsInGroup(GroupMatcher<JobKey> matcher) {
         List<String> groupWithNames = sscan(keyOfJobs(), toGroupLikeClause(matcher));
-        Set<JobKey> results = new HashSet<JobKey>(groupWithNames.size());
+        Set<JobKey> results = new HashSet<>(groupWithNames.size());
         for (String item : groupWithNames) {
             String[] array = splitValue(item);
             results.add(new JobKey(array[0], array[1]));
@@ -919,7 +918,6 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      *          the trigger to insert
      * @param state
      *          the state that the trigger should be stored in
-     * @return the number of rows inserted
      */
     public void insertTrigger(OperableTrigger trigger, String state, JobDetail job) {
         updateTrigger(trigger, state, job);
@@ -996,7 +994,6 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      *
      * @param state
      *          the new state for the trigger
-     * @return the number of rows updated
      */
     public void updateTriggerState(TriggerKey triggerKey,
                                   String state) {
@@ -1039,7 +1036,6 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      *          one of the old state the trigger must be in
      * @param oldState2
      *          one of the old state the trigger must be in
-     * @return int the number of rows updated
      */
     public void updateTriggerGroupStateFromOtherStates(GroupMatcher<TriggerKey> matcher, String newState,
                                                        String oldState1, String oldState2) {
@@ -1135,7 +1131,6 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      *          the new state for the trigger group
      * @param oldState
      *          the old state the triggers must be in
-     * @return int the number of rows updated
      */
     public void updateTriggerGroupStateFromOtherState(GroupMatcher<TriggerKey> matcher, String newState, String oldState) {
         Set<TriggerKey> triggerKeys = selectTriggersInGroup(matcher);
@@ -1151,7 +1146,6 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      *
      * @param state
      *          the new state for the triggers
-     * @return the number of rows updated
      */
     public void updateTriggerStatesForJob(JobKey jobKey,
                                          String state) {
@@ -1213,8 +1207,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
     public JobDetail selectJobForTrigger(TriggerKey triggerKey) {
         String jobName = hget(keyOfTrigger(triggerKey), FIELD_JOB_NAME);
         Map<String, String> jobDetailMap = hgetall(keyOfJob(new JobKey(jobName, triggerKey.getGroup())));
-        JobDetailImpl job = objectMapper.convertValue(jobDetailMap, JobDetailImpl.class);
-        return job;
+        return objectMapper.convertValue(jobDetailMap, JobDetailImpl.class);
     }
 
     /**
@@ -1227,7 +1220,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      */
     public List<OperableTrigger> selectTriggersForJob(JobKey jobKey) {
 
-        LinkedList<OperableTrigger> trigList = new LinkedList<OperableTrigger>();
+        LinkedList<OperableTrigger> trigList = new LinkedList<>();
 
         Set<String> groupWithNames = smembers(keyOfJobTriggers(jobKey));
         for (String item : groupWithNames) {
@@ -1243,7 +1236,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
 
     public List<OperableTrigger> selectTriggersForCalendar(String calName) {
 
-        LinkedList<OperableTrigger> trigList = new LinkedList<OperableTrigger>();
+        LinkedList<OperableTrigger> trigList = new LinkedList<>();
         Set<String> triggerGroupWithNames = smembers(keyOfCalendarTriggers(calName));
         for (String groupWithName : triggerGroupWithNames) {
             String[] array = splitValue(groupWithName);
@@ -1258,15 +1251,13 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      * </p>
      *
      * @return the <code>{@link org.quartz.Trigger}</code> object
-     * @throws JobPersistenceException
      */
     public OperableTrigger selectTrigger(TriggerKey triggerKey) {
         Map<String, String> triggerMap = hgetall(keyOfTrigger(triggerKey));
         String type = triggerMap.get(FIELD_TYPE);
         TriggerTypeDelegate tDel = findTriggerTypeDelegate(type);
         Class<? extends OperableTrigger> triggerClass = tDel.getTriggerClass();
-        OperableTrigger operableTrigger = objectMapper.convertValue(triggerMap, triggerClass);
-        return operableTrigger;
+        return objectMapper.convertValue(triggerMap, triggerClass);
     }
 
     /**
@@ -1359,7 +1350,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
 
     public List<String> selectTriggerGroups(GroupMatcher<TriggerKey> matcher) {
         List<String> groupWithNames = sscan(keyOfTriggers(), toGroupLikeClause(matcher));
-        List<String> results = new LinkedList<String>();
+        List<String> results = new LinkedList<>();
         for (String item : groupWithNames) {
             String[] array = splitValue(item);
             results.add(array[1]);
@@ -1378,7 +1369,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      */
     public Set<TriggerKey> selectTriggersInGroup(GroupMatcher<TriggerKey> matcher) {
         List<String> groupWithNames = sscan(keyOfTriggers(), toGroupLikeClause(matcher));
-        Set<TriggerKey> results = new HashSet<TriggerKey>(groupWithNames.size());
+        Set<TriggerKey> results = new HashSet<>(groupWithNames.size());
         for (String item : groupWithNames) {
             String[] array = splitValue(item);
             results.add(new TriggerKey(array[0], array[1]));
@@ -1386,12 +1377,12 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
         return results;
     }
 
-    public long insertPausedTriggerGroup(String groupName) {
-        return sadd(keyOfPausedTriggerGroups(), groupName);
+    public void insertPausedTriggerGroup(String groupName) {
+        sadd(keyOfPausedTriggerGroups(), groupName);
     }
 
-    public int deletePausedTriggerGroup(String groupName) {
-        return srem(keyOfPausedTriggerGroups(), groupName);
+    public void deletePausedTriggerGroup(String groupName) {
+        srem(keyOfPausedTriggerGroups(), groupName);
     }
 
     public void deletePausedTriggerGroup(GroupMatcher<TriggerKey> matcher) {
@@ -1421,10 +1412,10 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      * @throws IOException
      *           if there were problems serializing the calendar
      */
-    public String updateCalendar(String calendarName,
-                              Calendar calendar) throws IOException {
+    public void updateCalendar(String calendarName,
+                               Calendar calendar) throws IOException {
         String calendarInfo = objectMapper.writeValueAsString(calendar);
-        return set(keyOfCalendar(calendarName), calendarInfo);
+        set(keyOfCalendar(calendarName), calendarInfo);
     }
 
     /**
@@ -1436,14 +1427,13 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      *          the name for the new calendar
      * @param calendar
      *          the calendar
-     * @return the number of rows updated
      * @throws IOException
      *           if there were problems serializing the calendar
      */
-    public String insertCalendar(String calendarName,
-                                 Calendar calendar) throws IOException {
+    public void insertCalendar(String calendarName,
+                               Calendar calendar) throws IOException {
         sadd(keyOfCalendars(), calendarName);
-        return updateCalendar(calendarName, calendar);
+        updateCalendar(calendarName, calendar);
     }
 
     /**
@@ -1545,15 +1535,15 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      */
     public List<TriggerKey> selectTriggerToAcquire(long noLaterThan, long noEarlierThan, int maxCount) {
 
-        List<TriggerKey> nextTriggers = new LinkedList<TriggerKey>();
+        List<TriggerKey> nextTriggers = new LinkedList<>();
 
         // Set max rows to retrieve
         if (maxCount < 1)
             maxCount = 1; // we want at least one trigger back.
         List<String> groupWithTriggerNames = zrangebyscore(keyOfWaitingStateTriggers(), noLaterThan);
         List<Map<String, String>> list = new ArrayList<>(groupWithTriggerNames.size());
-        for (int i = 0; i < groupWithTriggerNames.size(); i++) {
-            String[] array = splitValue(groupWithTriggerNames.get(i));
+        for (String groupWithTriggerName : groupWithTriggerNames) {
+            String[] array = splitValue(groupWithTriggerName);
             TriggerKey triggerKey = new TriggerKey(array[0], array[1]);
             List<KeyValue<String, String>> keyValues = hmget(keyOfTrigger(triggerKey), FIELD_MISFIRE_INSTRUCTION, FIELD_NEXT_FIRE_TIME, FIELD_PRIORITY);
             if ("-1".equals(keyValues.get(0).getValue())
@@ -1632,7 +1622,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      */
     public List<FiredTriggerRecord> selectFiredTriggerRecords(String triggerName, String groupName) {
 
-        List<FiredTriggerRecord> lst = new LinkedList<FiredTriggerRecord>();
+        List<FiredTriggerRecord> lst = new LinkedList<>();
 
         Set<String> instanceNames = smembers(keyOfFiredInstances());
         for (String instanceName : instanceNames) {
@@ -1652,7 +1642,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
 
     public List<FiredTriggerRecord> selectInstancesFiredTriggerRecords(String instanceName) {
 
-        List<FiredTriggerRecord> lst = new LinkedList<FiredTriggerRecord>();
+        List<FiredTriggerRecord> lst = new LinkedList<>();
 
         Set<String> entryIds = smembers(keyOfFiredJobs(instanceName));
         for (String entryId : entryIds) {
@@ -1687,7 +1677,6 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
      *
      * @param entryId
      *          the fired trigger entry to delete
-     * @return the number of rows deleted
      */
     public void deleteFiredTrigger(String entryId) {
         del(keyOfFiredJob(entryId));
@@ -1697,19 +1686,18 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
         }
     }
 
-    public int insertSchedulerState(String theInstanceId,
-                                    long checkInTime, long interval) {
-        long res = sadd(keyOfSchedulerStates(), theInstanceId);
+    public void insertSchedulerState(String theInstanceId,
+                                     long checkInTime, long interval) {
+        sadd(keyOfSchedulerStates(), theInstanceId);
         Map<String, String> map = new HashMap<>();
         map.put(FIELD_LAST_CHECKIN_TIME, String.valueOf(checkInTime));
         map.put(FIELD_CHECKIN_INTERVAL, String.valueOf(interval));
         hmset(keyOfSchedulerState(theInstanceId), map);
-        return (int) res;
     }
 
-    public int deleteSchedulerState(String theInstanceId) {
+    public void deleteSchedulerState(String theInstanceId) {
         srem(keyOfSchedulerStates(), theInstanceId);
-        return del(keyOfSchedulerState(theInstanceId));
+        del(keyOfSchedulerState(theInstanceId));
     }
 
     public int updateSchedulerState(String theInstanceId, long checkInTime) {
@@ -1718,7 +1706,7 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
     }
 
     public List<SchedulerStateRecord> selectSchedulerStateRecords() {
-        List<SchedulerStateRecord> lst = new LinkedList<SchedulerStateRecord>();
+        List<SchedulerStateRecord> lst = new LinkedList<>();
 
         Set<String> instanceIds = smembers(keyOfSchedulerStates());
         for (String instanceId : instanceIds) {

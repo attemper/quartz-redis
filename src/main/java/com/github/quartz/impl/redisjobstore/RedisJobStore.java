@@ -436,7 +436,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * @param signaler schedule signaler object
      */
     @Override
-    public void initialize(ClassLoadHelper loadHelper, SchedulerSignaler signaler) throws SchedulerConfigException {
+    public void initialize(ClassLoadHelper loadHelper, SchedulerSignaler signaler) {
         this.classLoadHelper = loadHelper;
         this.schedSignaler = signaler;
 
@@ -522,7 +522,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                     .setRedisSortedSetCommands(sync)
                     .setRedisServerCommands(sync);
         } else {
-            RedisURI redisURI = RedisURI.builder().redis(host, port).withSsl(ssl).withDatabase(database).build();
+            RedisURI redisURI = RedisURI.Builder.redis(host, port).withSsl(ssl).withDatabase(database).build();
             if (password != null && !"".equals(password.trim())) {
                 redisURI.setPassword(password);
             }
@@ -633,7 +633,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      *
      * @throws JobPersistenceException if jobs could not be recovered
      */
-    protected void recoverJobs() throws JobPersistenceException {
+    private void recoverJobs() throws JobPersistenceException {
         executeInLock(LOCK_TRIGGER_ACCESS, new VoidCallback() {
             public void executeVoid() throws JobPersistenceException {
                 try {
@@ -703,33 +703,33 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * Helper class for returning the composite result of trying
      * to recover misfired jobs.
      */
-    protected static class RecoverMisfiredJobsResult {
-        public static final RecoverMisfiredJobsResult NO_OP =
+    private static class RecoverMisfiredJobsResult {
+        private static final RecoverMisfiredJobsResult NO_OP =
                 new RecoverMisfiredJobsResult(false, 0, Long.MAX_VALUE);
 
         private boolean _hasMoreMisfiredTriggers;
         private int _processedMisfiredTriggerCount;
         private long _earliestNewTime;
 
-        public RecoverMisfiredJobsResult(
+        private RecoverMisfiredJobsResult(
                 boolean hasMoreMisfiredTriggers, int processedMisfiredTriggerCount, long earliestNewTime) {
             _hasMoreMisfiredTriggers = hasMoreMisfiredTriggers;
             _processedMisfiredTriggerCount = processedMisfiredTriggerCount;
             _earliestNewTime = earliestNewTime;
         }
 
-        public boolean hasMoreMisfiredTriggers() {
+        private boolean hasMoreMisfiredTriggers() {
             return _hasMoreMisfiredTriggers;
         }
-        public int getProcessedMisfiredTriggerCount() {
+        private int getProcessedMisfiredTriggerCount() {
             return _processedMisfiredTriggerCount;
         }
-        public long getEarliestNewTime() {
+        private long getEarliestNewTime() {
             return _earliestNewTime;
         }
     }
 
-    protected RecoverMisfiredJobsResult recoverMisfiredJobs(boolean recovering)
+    private RecoverMisfiredJobsResult recoverMisfiredJobs(boolean recovering)
             throws JobPersistenceException {
 
         // If recovering, we want to handle all of the misfired
@@ -737,7 +737,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
         int maxMisfiresToHandleAtATime =
                 (recovering) ? -1 : getMaxMisfiresToHandleAtATime();
 
-        List<TriggerKey> misfiredTriggers = new LinkedList<TriggerKey>();
+        List<TriggerKey> misfiredTriggers = new LinkedList<>();
         long earliestNewTime = Long.MAX_VALUE;
         // We must still look for the MISFIRED state in case triggers were left
         // in this state when upgrading to this version that does not support it.
@@ -780,7 +780,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                 hasMoreMisfiredTriggers, misfiredTriggers.size(), earliestNewTime);
     }
 
-    protected boolean updateMisfiredTrigger(TriggerKey triggerKey, String newStateIfNotComplete, boolean forceState)
+    private boolean updateMisfiredTrigger(TriggerKey triggerKey, String newStateIfNotComplete)
             throws JobPersistenceException {
         try {
 
@@ -795,7 +795,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                 return false;
             }
 
-            doUpdateOfMisfiredTrigger(trig, forceState, newStateIfNotComplete, false);
+            doUpdateOfMisfiredTrigger(trig, true, newStateIfNotComplete, false);
 
             return true;
 
@@ -834,7 +834,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      *                                                 exists.
      */
     @Override
-    public void storeJobAndTrigger(final JobDetail newJob, final OperableTrigger newTrigger) throws ObjectAlreadyExistsException, JobPersistenceException {
+    public void storeJobAndTrigger(final JobDetail newJob, final OperableTrigger newTrigger) throws JobPersistenceException {
         executeInLock(LOCK_TRIGGER_ACCESS, new VoidCallback() {
             @Override
             void executeVoid() throws JobPersistenceException {
@@ -872,11 +872,9 @@ public class RedisJobStore implements JobStore, RedisConstants {
                 });
     }
 
-    protected void storeJobIntern(JobDetail newJob, boolean replaceExisting) throws JobPersistenceException {
+    private void storeJobIntern(JobDetail newJob, boolean replaceExisting) throws JobPersistenceException {
         boolean existingJob = jobExists(newJob.getKey());
-        if (existingJob && !replaceExisting) {
-            throw new ObjectAlreadyExistsException(newJob);
-        }
+
         if (existingJob) {
             if (!replaceExisting) {
                 throw new ObjectAlreadyExistsException(newJob);
@@ -887,7 +885,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
         }
     }
 
-    protected boolean jobExists(JobKey jobKey) {
+    private boolean jobExists(JobKey jobKey) {
         return getDelegate().jobExists(jobKey);
     }
 
@@ -919,7 +917,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                 });
     }
 
-    protected void storeTrigger(OperableTrigger newTrigger, JobDetail job, boolean replaceExisting, String state, boolean forceState, boolean recovering) throws JobPersistenceException {
+    private void storeTrigger(OperableTrigger newTrigger, JobDetail job, boolean replaceExisting, String state, boolean forceState, boolean recovering) throws JobPersistenceException {
         boolean existingTrigger = triggerExists(newTrigger.getKey());
         if (existingTrigger && !replaceExisting) {
             throw new ObjectAlreadyExistsException(newTrigger);
@@ -961,7 +959,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
         }
     }
 
-    protected boolean triggerExists(TriggerKey triggerKey) {
+    private boolean triggerExists(TriggerKey triggerKey) {
         return getDelegate().triggerExists(triggerKey);
     }
 
@@ -985,15 +983,10 @@ public class RedisJobStore implements JobStore, RedisConstants {
     public boolean removeJob(final JobKey jobKey) throws JobPersistenceException {
         return executeInLock(
                 LOCK_TRIGGER_ACCESS,
-                new Callback<Boolean>() {
-                    public Boolean execute() throws JobPersistenceException {
-                        return removeJobIntern(jobKey);
-                    }
-                });
+                () -> removeJobIntern(jobKey));
     }
 
-    protected boolean removeJobIntern(final JobKey jobKey)
-            throws JobPersistenceException {
+    private boolean removeJobIntern(final JobKey jobKey) {
         List<TriggerKey> jobTriggers = getDelegate().selectTriggerKeysForJob(jobKey);
         for (TriggerKey jobTrigger: jobTriggers) {
             deleteTriggerAndChildren(jobTrigger);
@@ -1006,16 +999,14 @@ public class RedisJobStore implements JobStore, RedisConstants {
     public boolean removeJobs(final List<JobKey> jobKeys) throws JobPersistenceException {
         return executeInLock(
                 LOCK_TRIGGER_ACCESS,
-                new Callback<Boolean>() {
-                    public Boolean execute() throws JobPersistenceException {
-                        boolean allFound = true;
+                () -> {
+                    boolean allFound = true;
 
-                        // FUTURE_TODO: make this more efficient with a true bulk operation...
-                        for (JobKey jobKey : jobKeys)
-                            allFound = removeJobIntern(jobKey) && allFound;
+                    // FUTURE_TODO: make this more efficient with a true bulk operation...
+                    for (JobKey jobKey : jobKeys)
+                        allFound = removeJobIntern(jobKey) && allFound;
 
-                        return allFound;
-                    }
+                    return allFound;
                 });
     }
 
@@ -1023,16 +1014,14 @@ public class RedisJobStore implements JobStore, RedisConstants {
     public boolean removeTriggers(final List<TriggerKey> triggerKeys) throws JobPersistenceException {
         return executeInLock(
                 LOCK_TRIGGER_ACCESS,
-                new Callback<Boolean>() {
-                    public Boolean execute() throws JobPersistenceException {
-                        boolean allFound = true;
+                () -> {
+                    boolean allFound = true;
 
-                        // FUTURE_TODO: make this more efficient with a true bulk operation...
-                        for (TriggerKey triggerKey : triggerKeys)
-                            allFound = removeTriggerIntern(triggerKey) && allFound;
+                    // FUTURE_TODO: make this more efficient with a true bulk operation...
+                    for (TriggerKey triggerKey : triggerKeys)
+                        allFound = removeTriggerIntern(triggerKey) && allFound;
 
-                        return allFound;
-                    }
+                    return allFound;
                 });
     }
 
@@ -1073,8 +1062,8 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * Delete a trigger, its listeners, and its Simple/Cron/BLOB sub-table entry.
      *
      * @see #removeJobIntern(org.quartz.JobKey)
-     * @see #removeTrigger(TriggerKey)
-     * @see #replaceTrigger(TriggerKey, OperableTrigger)
+     * @see #removeTrigger(org.quartz.TriggerKey)
+     * @see #replaceTrigger(org.quartz.TriggerKey, OperableTrigger)
      */
     private boolean deleteTriggerAndChildren(TriggerKey key) {
 
@@ -1082,9 +1071,8 @@ public class RedisJobStore implements JobStore, RedisConstants {
     }
 
     @Override
-    public JobDetail retrieveJob(JobKey jobKey) throws JobPersistenceException {
-        return getDelegate().selectJobDetail(jobKey/*,
-                getClassLoadHelper()*/);
+    public JobDetail retrieveJob(JobKey jobKey) {
+        return getDelegate().selectJobDetail(jobKey);
     }
 
     /**
@@ -1111,14 +1099,10 @@ public class RedisJobStore implements JobStore, RedisConstants {
     public boolean removeTrigger(final TriggerKey triggerKey) throws JobPersistenceException {
         return executeInLock(
                 LOCK_TRIGGER_ACCESS,
-                new Callback<Boolean>() {
-                    public Boolean execute() throws JobPersistenceException {
-                        return removeTriggerIntern(triggerKey);
-                    }
-                });
+                () -> removeTriggerIntern(triggerKey));
     }
 
-    protected boolean removeTriggerIntern(TriggerKey key) {
+    private boolean removeTriggerIntern(TriggerKey key) {
         boolean removedTrigger;
         // this must be called before we delete the trigger, obviously
         JobDetail job = getDelegate().selectJobForTrigger(key);
@@ -1153,26 +1137,24 @@ public class RedisJobStore implements JobStore, RedisConstants {
     public boolean replaceTrigger(final TriggerKey triggerKey, final OperableTrigger newTrigger) throws JobPersistenceException {
         return executeInLock(
                 LOCK_TRIGGER_ACCESS,
-                new Callback<Boolean>() {
-                    public Boolean execute() throws JobPersistenceException {
-                        // this must be called before we delete the trigger, obviously
-                        JobDetail job = getDelegate().selectJobForTrigger(triggerKey);
+                () -> {
+                    // this must be called before we delete the trigger, obviously
+                    JobDetail job = getDelegate().selectJobForTrigger(triggerKey);
 
-                        if (job == null) {
-                            return false;
-                        }
-
-                        if (!newTrigger.getJobKey().equals(job.getKey())) {
-                            throw new JobPersistenceException("New trigger is not related to the same job as the old trigger.");
-                        }
-
-                        boolean removedTrigger =
-                                deleteTriggerAndChildren(triggerKey);
-
-                        storeTrigger(newTrigger, job, false, STATE_WAITING, false, false);
-
-                        return removedTrigger;
+                    if (job == null) {
+                        return false;
                     }
+
+                    if (!newTrigger.getJobKey().equals(job.getKey())) {
+                        throw new JobPersistenceException("New trigger is not related to the same job as the old trigger.");
+                    }
+
+                    boolean removedTrigger =
+                            deleteTriggerAndChildren(triggerKey);
+
+                    storeTrigger(newTrigger, job, false, STATE_WAITING, false, false);
+
+                    return removedTrigger;
                 });
     }
 
@@ -1184,7 +1166,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * match.
      */
     @Override
-    public OperableTrigger retrieveTrigger(final TriggerKey triggerKey) throws JobPersistenceException {
+    public OperableTrigger retrieveTrigger(final TriggerKey triggerKey) {
         return getDelegate().selectTrigger(triggerKey);
     }
 
@@ -1195,7 +1177,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * @see org.quartz.Trigger.TriggerState
      */
     @Override
-    public Trigger.TriggerState getTriggerState(final TriggerKey triggerKey) throws JobPersistenceException {
+    public Trigger.TriggerState getTriggerState(final TriggerKey triggerKey) {
         String ts = getDelegate().selectTriggerState(triggerKey);
 
         if (ts == null) {
@@ -1246,7 +1228,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
         executeInLock(
                 LOCK_TRIGGER_ACCESS,
                 new VoidCallback() {
-                    public void executeVoid() throws JobPersistenceException {
+                    public void executeVoid() {
                         String newState = STATE_WAITING;
 
                         if(getDelegate().isTriggerGroupPaused(triggerKey.getGroup())) {
@@ -1320,7 +1302,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                 });
     }
 
-    protected boolean calendarExists(String calName) {
+    private boolean calendarExists(String calName) {
         return getDelegate().calendarExists(calName);
     }
 
@@ -1343,19 +1325,17 @@ public class RedisJobStore implements JobStore, RedisConstants {
             throws JobPersistenceException {
         return executeInLock(
                 LOCK_TRIGGER_ACCESS,
-                new Callback<Boolean>() {
-                    public Boolean execute() throws JobPersistenceException {
-                        if (getDelegate().calendarIsReferenced(calName)) {
-                            throw new JobPersistenceException(
-                                    "Calender cannot be removed if it referenced by a trigger!");
-                        }
-
-                        if (!isClustered) {
-                            calendarCache.remove(calName);
-                        }
-
-                        return (getDelegate().deleteCalendar(calName) > 0);
+                () -> {
+                    if (getDelegate().calendarIsReferenced(calName)) {
+                        throw new JobPersistenceException(
+                                "Calender cannot be removed if it referenced by a trigger!");
                     }
+
+                    if (!isClustered) {
+                        calendarCache.remove(calName);
+                    }
+
+                    return (getDelegate().deleteCalendar(calName) > 0);
                 });
     }
 
@@ -1398,8 +1378,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * </p>
      */
     @Override
-    public int getNumberOfJobs()
-            throws JobPersistenceException {
+    public int getNumberOfJobs() {
         return getDelegate().selectNumJobs();
     }
 
@@ -1410,8 +1389,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * </p>
      */
     @Override
-    public int getNumberOfTriggers()
-            throws JobPersistenceException {
+    public int getNumberOfTriggers() {
         return getDelegate().selectNumTriggers();
     }
 
@@ -1422,8 +1400,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * </p>
      */
     @Override
-    public int getNumberOfCalendars()
-            throws JobPersistenceException {
+    public int getNumberOfCalendars() {
         return getDelegate().selectNumCalendars();
     }
 
@@ -1438,12 +1415,11 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * </p>
      */
     @Override
-    public Set<JobKey> getJobKeys(final GroupMatcher<JobKey> matcher)
-            throws JobPersistenceException {
+    public Set<JobKey> getJobKeys(final GroupMatcher<JobKey> matcher) {
         return getJobNames(matcher);
     }
 
-    protected Set<JobKey> getJobNames(GroupMatcher<JobKey> matcher) throws JobPersistenceException {
+    private Set<JobKey> getJobNames(GroupMatcher<JobKey> matcher){
         return getDelegate().selectJobsInGroup(matcher);
     }
 
@@ -1453,10 +1429,9 @@ public class RedisJobStore implements JobStore, RedisConstants {
      *
      * @param jobKey the identifier to check for
      * @return true if a Job exists with the given identifier
-     * @throws JobPersistenceException
      */
     @Override
-    public boolean checkExists(final JobKey jobKey) throws JobPersistenceException {
+    public boolean checkExists(final JobKey jobKey) {
         return getDelegate().jobExists(jobKey);
     }
 
@@ -1466,25 +1441,22 @@ public class RedisJobStore implements JobStore, RedisConstants {
      *
      * @param triggerKey the identifier to check for
      * @return true if a Trigger exists with the given identifier
-     * @throws JobPersistenceException
      */
     @Override
-    public boolean checkExists(final TriggerKey triggerKey) throws JobPersistenceException {
+    public boolean checkExists(final TriggerKey triggerKey) {
         return getDelegate().triggerExists(triggerKey);
     }
 
     /**
      * Clear (delete!) all scheduling data - all {@link Job}s, {@link Trigger}s
      * {@link Calendar}s.
-     *
-     * @throws JobPersistenceException
      */
     @Override
     public void clearAllSchedulingData() throws JobPersistenceException {
         executeInLock(
                 LOCK_TRIGGER_ACCESS,
                 new VoidCallback() {
-                    public void executeVoid() throws JobPersistenceException {
+                    public void executeVoid() {
                         getDelegate().clearData();
                     }
                 });
@@ -1502,8 +1474,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * </p>
      */
     @Override
-    public Set<TriggerKey> getTriggerKeys(final GroupMatcher<TriggerKey> matcher)
-            throws JobPersistenceException {
+    public Set<TriggerKey> getTriggerKeys(final GroupMatcher<TriggerKey> matcher) {
         return getDelegate().selectTriggersInGroup(matcher);
     }
 
@@ -1519,7 +1490,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * </p>
      */
     @Override
-    public List<String> getJobGroupNames() throws JobPersistenceException {
+    public List<String> getJobGroupNames() {
         return getDelegate().selectJobGroups();
     }
 
@@ -1535,7 +1506,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * </p>
      */
     @Override
-    public List<String> getTriggerGroupNames() throws JobPersistenceException {
+    public List<String> getTriggerGroupNames() {
         return getDelegate().selectTriggerGroups();
     }
 
@@ -1550,7 +1521,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * a zero-length array (not <code>null</code>).
      * </p>
      */
-    public List<String> getCalendarNames()throws JobPersistenceException {
+    public List<String> getCalendarNames() {
         return getDelegate().selectCalendars();
     }
 
@@ -1564,7 +1535,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * </p>
      */
     @Override
-    public List<OperableTrigger> getTriggersForJob(final JobKey jobKey) throws JobPersistenceException {
+    public List<OperableTrigger> getTriggersForJob(final JobKey jobKey) {
         return getDelegate().selectTriggersForJob(jobKey);
     }
 
@@ -1578,7 +1549,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * </p>
      */
     @Override
-    public List<OperableTrigger> getTriggersForCalendar(final String calName) throws JobPersistenceException {
+    public List<OperableTrigger> getTriggersForCalendar(final String calName) {
         return getDelegate().selectTriggersForCalendar(calName);
     }
 
@@ -1594,7 +1565,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
         executeInLock(
                 LOCK_TRIGGER_ACCESS,
                 new VoidCallback() {
-                    public void executeVoid() throws JobPersistenceException {
+                    public void executeVoid() {
                         pauseTriggerIntern(triggerKey);
                     }
                 });
@@ -1607,7 +1578,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      *
      * @see #resumeTriggerIntern(TriggerKey)
      */
-    protected void pauseTriggerIntern(TriggerKey triggerKey) {
+    private void pauseTriggerIntern(TriggerKey triggerKey) {
         String oldState = getDelegate().selectTriggerState(
                 triggerKey);
 
@@ -1635,7 +1606,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
         executeInLock(
                 LOCK_TRIGGER_ACCESS,
                 new VoidCallback() {
-                    public void executeVoid() throws JobPersistenceException {
+                    public void executeVoid() {
                         List<OperableTrigger> triggers = getTriggersForJob(jobKey);
                         for (OperableTrigger trigger: triggers) {
                             pauseTriggerIntern(trigger.getKey());
@@ -1657,21 +1628,19 @@ public class RedisJobStore implements JobStore, RedisConstants {
             throws JobPersistenceException {
         return executeInLock(
                 LOCK_TRIGGER_ACCESS,
-                new Callback<Set<String>>() {
-                    public Set<String> execute() throws JobPersistenceException {
-                        Set<String> groupNames = new HashSet<String>();
-                        Set<JobKey> jobNames = getJobNames(matcher);
+                () -> {
+                    Set<String> groupNames = new HashSet<>();
+                    Set<JobKey> jobNames = getJobNames(matcher);
 
-                        for (JobKey jobKey : jobNames) {
-                            List<OperableTrigger> triggers = getTriggersForJob(jobKey);
-                            for (OperableTrigger trigger : triggers) {
-                                pauseTriggerIntern(trigger.getKey());
-                            }
-                            groupNames.add(jobKey.getGroup());
+                    for (JobKey jobKey : jobNames) {
+                        List<OperableTrigger> triggers = getTriggersForJob(jobKey);
+                        for (OperableTrigger trigger : triggers) {
+                            pauseTriggerIntern(trigger.getKey());
                         }
-
-                        return groupNames;
+                        groupNames.add(jobKey.getGroup());
                     }
+
+                    return groupNames;
                 }
         );
     }
@@ -1683,7 +1652,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      *
      * @return STATE_PAUSED_BLOCKED, BLOCKED, or the currentState.
      */
-    protected String checkBlockedState(JobKey jobKey, String currentState) throws JobPersistenceException {
+    private String checkBlockedState(JobKey jobKey, String currentState) {
 
         // State can only transition to BLOCKED from PAUSED or WAITING.
         if ((!currentState.equals(STATE_WAITING)) &&
@@ -1734,7 +1703,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      *
      * @see #pauseTriggerIntern(TriggerKey)
      */
-    protected void resumeTriggerIntern(TriggerKey key)
+    private void resumeTriggerIntern(TriggerKey key)
             throws JobPersistenceException {
         TriggerStatus status = getDelegate().selectTriggerStatus(
                 key);
@@ -1753,8 +1722,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
         boolean misfired = false;
 
         if (schedulerRunning && status.getNextFireTime().before(new Date())) {
-            misfired = updateMisfiredTrigger(key,
-                    newState, true);
+            misfired = updateMisfiredTrigger(key, newState);
         }
 
         if(!misfired) {
@@ -1815,20 +1783,18 @@ public class RedisJobStore implements JobStore, RedisConstants {
             throws JobPersistenceException {
         return executeInLock(
                 LOCK_TRIGGER_ACCESS,
-                new Callback<Set<String>>() {
-                    public Set<String> execute() throws JobPersistenceException {
-                        Set<JobKey> jobKeys = getJobNames(matcher);
-                        Set<String> groupNames = new HashSet<String>();
+                () -> {
+                    Set<JobKey> jobKeys = getJobNames(matcher);
+                    Set<String> groupNames = new HashSet<>();
 
-                        for (JobKey jobKey: jobKeys) {
-                            List<OperableTrigger> triggers = getTriggersForJob(jobKey);
-                            for (OperableTrigger trigger: triggers) {
-                                resumeTriggerIntern(trigger.getKey());
-                            }
-                            groupNames.add(jobKey.getGroup());
+                    for (JobKey jobKey: jobKeys) {
+                        List<OperableTrigger> triggers = getTriggersForJob(jobKey);
+                        for (OperableTrigger trigger: triggers) {
+                            resumeTriggerIntern(trigger.getKey());
                         }
-                        return groupNames;
+                        groupNames.add(jobKey.getGroup());
                     }
+                    return groupNames;
                 });
     }
 
@@ -1845,11 +1811,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
             throws JobPersistenceException {
         return executeInLock(
                 LOCK_TRIGGER_ACCESS,
-                new Callback<Set<String>>() {
-                    public Set<String> execute() throws JobPersistenceException {
-                        return pauseTriggerGroup(matcher);
-                    }
-                });
+                () -> pauseTriggerGroup(matcher));
     }
 
     /**
@@ -1860,7 +1822,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      *
      * @see #resumeTriggerGroup(org.quartz.impl.matchers.GroupMatcher)
      */
-    protected Set<String> pauseTriggerGroup(GroupMatcher<TriggerKey> matcher) throws JobPersistenceException {
+    private Set<String> pauseTriggerGroup(GroupMatcher<TriggerKey> matcher) {
 
         getDelegate().updateTriggerGroupStateFromOtherStates(
                 matcher, STATE_PAUSED, STATE_ACQUIRED,
@@ -1883,12 +1845,11 @@ public class RedisJobStore implements JobStore, RedisConstants {
             }
         }
 
-        return new HashSet<String>(groups);
+        return new HashSet<>(groups);
     }
 
     @Override
-    public Set<String> getPausedTriggerGroups()
-            throws JobPersistenceException {
+    public Set<String> getPausedTriggerGroups() {
         return getDelegate().selectPausedTriggerGroups();
     }
 
@@ -1910,11 +1871,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
             throws JobPersistenceException {
         return executeInLock(
                 LOCK_TRIGGER_ACCESS,
-                new Callback<Set<String>>() {
-                    public Set<String> execute() throws JobPersistenceException {
-                        return resumeTriggerGroup(matcher);
-                    }
-                });
+                () -> resumeTriggerGroup(matcher));
 
     }
 
@@ -1931,10 +1888,10 @@ public class RedisJobStore implements JobStore, RedisConstants {
      *
      * @see #pauseTriggers(org.quartz.impl.matchers.GroupMatcher)
      */
-    public Set<String> resumeTriggerGroup(GroupMatcher<TriggerKey> matcher) throws JobPersistenceException {
+    private Set<String> resumeTriggerGroup(GroupMatcher<TriggerKey> matcher) throws JobPersistenceException {
 
         getDelegate().deletePausedTriggerGroup(matcher);
-        HashSet<String> groups = new HashSet<String>();
+        HashSet<String> groups = new HashSet<>();
 
         Set<TriggerKey> keys = getDelegate().selectTriggersInGroup(
                 matcher);
@@ -1999,7 +1956,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
         executeInLock(
                 LOCK_TRIGGER_ACCESS,
                 new VoidCallback() {
-                    public void executeVoid() throws JobPersistenceException {
+                    public void executeVoid() {
 
                         List<String> names = getTriggerGroupNames();
 
@@ -2048,7 +2005,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
 
     private static long ftrCtr = System.currentTimeMillis();
 
-    protected synchronized String getFiredTriggerRecordId() {
+    private synchronized String getFiredTriggerRecordId() {
         return getInstanceId() + ftrCtr++;
     }
 
@@ -2064,23 +2021,19 @@ public class RedisJobStore implements JobStore, RedisConstants {
     public List<OperableTrigger> acquireNextTriggers(final long noLaterThan, final int maxCount, final long timeWindow)
             throws JobPersistenceException {
         return executeInLock(LOCK_TRIGGER_ACCESS,
-                new Callback<List<OperableTrigger>>() {
-                    public List<OperableTrigger> execute() throws JobPersistenceException {
-                        return acquireNextTrigger(noLaterThan, maxCount, timeWindow);
-                    }
-                });
+                () -> acquireNextTrigger(noLaterThan, maxCount, timeWindow));
     }
 
     // FUTURE_TODO: this really ought to return something like a FiredTriggerBundle,
     // so that the fireInstanceId doesn't have to be on the trigger...
-    protected List<OperableTrigger> acquireNextTrigger(long noLaterThan, int maxCount, long timeWindow)
+    private List<OperableTrigger> acquireNextTrigger(long noLaterThan, int maxCount, long timeWindow)
             throws JobPersistenceException {
         if (timeWindow < 0) {
             throw new IllegalArgumentException();
         }
 
-        List<OperableTrigger> acquiredTriggers = new ArrayList<OperableTrigger>();
-        Set<JobKey> acquiredJobKeysForNoConcurrentExec = new HashSet<JobKey>();
+        List<OperableTrigger> acquiredTriggers = new ArrayList<>();
+        Set<JobKey> acquiredJobKeysForNoConcurrentExec = new HashSet<>();
         final int MAX_DO_LOOP_RETRY = 3;
         int currentLoopCount = 0;
         do {
@@ -2104,14 +2057,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                     // If trigger's job is set as @DisallowConcurrentExecution, and it has already been added to result, then
                     // put it back into the timeTriggers set and continue to search for next trigger.
                     JobKey jobKey = nextTrigger.getJobKey();
-                    JobDetail job;
-                    try {
-                        job = retrieveJob(jobKey);
-                    } catch (JobPersistenceException jpe) {
-                        getLog().error("Error retrieving job, setting trigger state to ERROR.", jpe);
-                        getDelegate().updateTriggerState(triggerKey, STATE_ERROR);
-                        continue;
-                    }
+                    JobDetail job = retrieveJob(jobKey);
 
                     if (job.isConcurrentExectionDisallowed()) {
                         if (acquiredJobKeysForNoConcurrentExec.contains(jobKey)) {
@@ -2179,10 +2125,10 @@ public class RedisJobStore implements JobStore, RedisConstants {
      */
     @Override
     public void releaseAcquiredTrigger(final OperableTrigger trigger) {
-        retryExecutInLock(
+        retryExecuteInLock(
                 LOCK_TRIGGER_ACCESS,
                 new VoidCallback() {
-                    public void executeVoid() throws JobPersistenceException {
+                    public void executeVoid() {
                         getDelegate().updateTriggerStateFromOtherState(
                                 trigger.getKey(), STATE_WAITING, STATE_ACQUIRED);
                         getDelegate().updateTriggerStateFromOtherState(
@@ -2206,29 +2152,25 @@ public class RedisJobStore implements JobStore, RedisConstants {
     @Override
     public List<TriggerFiredResult> triggersFired(final List<OperableTrigger> triggers) throws JobPersistenceException {
         return executeInLock(LOCK_TRIGGER_ACCESS,
-                new Callback<List<TriggerFiredResult>>() {
-                    public List<TriggerFiredResult> execute() throws JobPersistenceException {
-                        List<TriggerFiredResult> results = new ArrayList<TriggerFiredResult>();
+                () -> {
+                    List<TriggerFiredResult> results = new ArrayList<>();
 
-                        TriggerFiredResult result;
-                        for (OperableTrigger trigger : triggers) {
-                            try {
-                                TriggerFiredBundle bundle = triggerFired(trigger);
-                                result = new TriggerFiredResult(bundle);
-                            } catch (JobPersistenceException jpe) {
-                                result = new TriggerFiredResult(jpe);
-                            } catch(RuntimeException re) {
-                                result = new TriggerFiredResult(re);
-                            }
-                            results.add(result);
+                    TriggerFiredResult result;
+                    for (OperableTrigger trigger : triggers) {
+                        try {
+                            TriggerFiredBundle bundle = triggerFired(trigger);
+                            result = new TriggerFiredResult(bundle);
+                        } catch (JobPersistenceException | RuntimeException jpe) {
+                            result = new TriggerFiredResult(jpe);
                         }
-
-                        return results;
+                        results.add(result);
                     }
+
+                    return results;
                 });
     }
 
-    protected TriggerFiredBundle triggerFired(OperableTrigger trigger)
+    private TriggerFiredBundle triggerFired(OperableTrigger trigger)
             throws JobPersistenceException {
         JobDetail job;
         Calendar cal = null;
@@ -2240,14 +2182,9 @@ public class RedisJobStore implements JobStore, RedisConstants {
             return null;
         }
 
-        try {
-            job = retrieveJob(trigger.getJobKey());
-            if (job == null) { return null; }
-        } catch (JobPersistenceException jpe) {
-            getLog().error("Error retrieving job, setting trigger state to ERROR.", jpe);
-            getDelegate().updateTriggerState(trigger.getKey(),
-                    STATE_ERROR);
-            throw jpe;
+        job = retrieveJob(trigger.getJobKey());
+        if (job == null) {
+            return null;
         }
 
         if (trigger.getCalendarName() != null) {
@@ -2302,10 +2239,10 @@ public class RedisJobStore implements JobStore, RedisConstants {
     @Override
     public void triggeredJobComplete(final OperableTrigger trigger,
                                      final JobDetail jobDetail, final Trigger.CompletedExecutionInstruction triggerInstCode) {
-        retryExecutInLock(
+        retryExecuteInLock(
                 LOCK_TRIGGER_ACCESS,
                 new VoidCallback() {
-                    public void executeVoid() throws JobPersistenceException {
+                    public void executeVoid() {
                         if (triggerInstCode == Trigger.CompletedExecutionInstruction.DELETE_TRIGGER) {
                             // if retain trigger,do not delete it
                             if (retainTriggerAfterExecutionCompleted) {
@@ -2321,27 +2258,27 @@ public class RedisJobStore implements JobStore, RedisConstants {
                                 }
                             } else{
                                 removeTriggerIntern(trigger.getKey());
-                                signalSchedulingChangeOnTxCompletion(0L);
+                                signalSchedulingChangeOnTxCompletion();
                             }
                         } else if (triggerInstCode == Trigger.CompletedExecutionInstruction.SET_TRIGGER_COMPLETE) {
                             getDelegate().updateTriggerState(trigger.getKey(),
                                     STATE_COMPLETE);
-                            signalSchedulingChangeOnTxCompletion(0L);
+                            signalSchedulingChangeOnTxCompletion();
                         } else if (triggerInstCode == Trigger.CompletedExecutionInstruction.SET_TRIGGER_ERROR) {
                             getLog().info("Trigger " + trigger.getKey() + " set to ERROR state.");
                             getDelegate().updateTriggerState(trigger.getKey(),
                                     STATE_ERROR);
-                            signalSchedulingChangeOnTxCompletion(0L);
+                            signalSchedulingChangeOnTxCompletion();
                         } else if (triggerInstCode == Trigger.CompletedExecutionInstruction.SET_ALL_JOB_TRIGGERS_COMPLETE) {
                             getDelegate().updateTriggerStatesForJob(
                                     trigger.getJobKey(), STATE_COMPLETE);
-                            signalSchedulingChangeOnTxCompletion(0L);
+                            signalSchedulingChangeOnTxCompletion();
                         } else if (triggerInstCode == Trigger.CompletedExecutionInstruction.SET_ALL_JOB_TRIGGERS_ERROR) {
                             getLog().info("All triggers of Job " +
                                     trigger.getKey() + " set to ERROR state.");
                             getDelegate().updateTriggerStatesForJob(
                                     trigger.getJobKey(), STATE_ERROR);
-                            signalSchedulingChangeOnTxCompletion(0L);
+                            signalSchedulingChangeOnTxCompletion();
                         }
 
                         if (jobDetail.isConcurrentExectionDisallowed()) {
@@ -2353,7 +2290,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                                     jobDetail.getKey(), STATE_PAUSED,
                                     STATE_PAUSED_BLOCKED);
 
-                            signalSchedulingChangeOnTxCompletion(0L);
+                            signalSchedulingChangeOnTxCompletion();
                         }
                         if (jobDetail.isPersistJobDataAfterExecution()) {
                             if (jobDetail.getJobDataMap().isDirty()) {
@@ -2366,7 +2303,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                 });
     }
 
-    protected StdRedisDelegate getDelegate() {
+    private StdRedisDelegate getDelegate() {
         return delegate;
     }
 
@@ -2374,7 +2311,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
     // Management methods
     //---------------------------------------------------------------------------
 
-    protected RecoverMisfiredJobsResult doRecoverMisfires() throws JobPersistenceException {
+    private RecoverMisfiredJobsResult doRecoverMisfires() throws JobPersistenceException {
         String lockValue = null;
         try {
             RecoverMisfiredJobsResult result = RecoverMisfiredJobsResult.NO_OP;
@@ -2400,24 +2337,21 @@ public class RedisJobStore implements JobStore, RedisConstants {
         }
     }
 
-    protected ThreadLocal<Long> sigChangeForTxCompletion = new ThreadLocal<Long>();
-    protected void signalSchedulingChangeOnTxCompletion(long candidateNewNextFireTime) {
+    private ThreadLocal<Long> sigChangeForTxCompletion = new ThreadLocal<>();
+    private void signalSchedulingChangeOnTxCompletion() {
         Long sigTime = sigChangeForTxCompletion.get();
-        if(sigTime == null && candidateNewNextFireTime >= 0L)
-            sigChangeForTxCompletion.set(candidateNewNextFireTime);
-        else {
-            if(sigTime == null || candidateNewNextFireTime < sigTime)
-                sigChangeForTxCompletion.set(candidateNewNextFireTime);
+        if(sigTime == null || sigTime > 0) {
+            sigChangeForTxCompletion.set(0L);
         }
     }
 
-    protected Long clearAndGetSignalSchedulingChangeOnTxCompletion() {
+    private Long clearAndGetSignalSchedulingChangeOnTxCompletion() {
         Long t = sigChangeForTxCompletion.get();
         sigChangeForTxCompletion.set(null);
         return t;
     }
 
-    protected void signalSchedulingChangeImmediately(long candidateNewNextFireTime) {
+    private void signalSchedulingChangeImmediately(long candidateNewNextFireTime) {
         schedSignaler.signalSchedulingChange(candidateNewNextFireTime);
     }
 
@@ -2425,11 +2359,11 @@ public class RedisJobStore implements JobStore, RedisConstants {
     // Cluster management methods
     //---------------------------------------------------------------------------
 
-    protected boolean firstCheckIn = true;
+    private boolean firstCheckIn = true;
 
-    protected long lastCheckin = System.currentTimeMillis();
+    private long lastCheckin = System.currentTimeMillis();
 
-    protected boolean doCheckin() throws JobPersistenceException {
+    private boolean doCheckin() throws JobPersistenceException {
         boolean transOwner = false;
         boolean transStateOwner = false;
         boolean recovered = false;
@@ -2483,10 +2417,10 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * Get a list of all scheduler instances in the cluster that may have failed.
      * This includes this scheduler if it is checking in for the first time.
      */
-    protected List<SchedulerStateRecord> findFailedInstances()
+    private List<SchedulerStateRecord> findFailedInstances()
             throws JobPersistenceException {
         try {
-            List<SchedulerStateRecord> failedInstances = new LinkedList<SchedulerStateRecord>();
+            List<SchedulerStateRecord> failedInstances = new LinkedList<>();
             boolean foundThisScheduler = false;
             long timeNow = System.currentTimeMillis();
 
@@ -2540,7 +2474,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
      */
     private List<SchedulerStateRecord> findOrphanedFailedInstances(
             List<SchedulerStateRecord> schedulerStateRecords) {
-        List<SchedulerStateRecord> orphanedInstances = new ArrayList<SchedulerStateRecord>();
+        List<SchedulerStateRecord> orphanedInstances = new ArrayList<>();
 
         Set<String> allFiredTriggerInstanceNames = getDelegate().selectFiredTriggerInstanceNames();
         if (!allFiredTriggerInstanceNames.isEmpty()) {
@@ -2564,14 +2498,14 @@ public class RedisJobStore implements JobStore, RedisConstants {
         return orphanedInstances;
     }
 
-    protected long calcFailedIfAfter(SchedulerStateRecord rec) {
+    private long calcFailedIfAfter(SchedulerStateRecord rec) {
         return rec.getCheckinTimestamp() +
                 Math.max(rec.getCheckinInterval(),
                         (System.currentTimeMillis() - lastCheckin)) +
                 7500L;
     }
 
-    protected List<SchedulerStateRecord> clusterCheckIn()
+    private List<SchedulerStateRecord> clusterCheckIn()
             throws JobPersistenceException {
 
         List<SchedulerStateRecord> failedInstances = findFailedInstances();
@@ -2594,7 +2528,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
         return failedInstances;
     }
 
-    protected void clusterRecover(List<SchedulerStateRecord> failedInstances)
+    private void clusterRecover(List<SchedulerStateRecord> failedInstances)
             throws JobPersistenceException {
 
         if (failedInstances.size() > 0) {
@@ -2618,7 +2552,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                     int recoveredCount = 0;
                     int otherCount = 0;
 
-                    Set<TriggerKey> triggerKeys = new HashSet<TriggerKey>();
+                    Set<TriggerKey> triggerKeys = new HashSet<>();
 
                     for (FiredTriggerRecord ftRec : firedTriggerRecs) {
 
@@ -2743,7 +2677,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
         }
     }
 
-    protected void logWarnIfNonZero(int val, String warning) {
+    private void logWarnIfNonZero(int val, String warning) {
         if (val > 0) {
             getLog().info(warning);
         } else {
@@ -2759,9 +2693,8 @@ public class RedisJobStore implements JobStore, RedisConstants {
      * @param callback a callback containing the actions to perform during lock
      * @param <T> return class
      * @return the result of the actions performed while locked, if any
-     * @throws JobPersistenceException
      */
-    protected <T> T executeInLock(String lockName, Callback<T> callback) throws JobPersistenceException {
+    private <T> T executeInLock(String lockName, Callback<T> callback) throws JobPersistenceException {
         boolean transOwner = false;
         String lockValue = null;
         try {
@@ -2776,11 +2709,6 @@ public class RedisJobStore implements JobStore, RedisConstants {
             }
 
             return result;
-        } catch (JobPersistenceException e) {
-            throw e;
-        } catch (RuntimeException e) {
-            throw new JobPersistenceException("Unexpected runtime exception: "
-                    + e.getMessage(), e);
         } finally {
             if (transOwner) {
                 getDelegate().releaseLock(lockName, lockValue);
@@ -2788,16 +2716,17 @@ public class RedisJobStore implements JobStore, RedisConstants {
         }
     }
 
-    protected <T> T retryExecutInLock(String lockName, Callback<T> txCallback) {
+    private <T> void retryExecuteInLock(String lockName, Callback<T> txCallback) {
         for (int retry = 1; !shutdown; retry++) {
             try {
-                return executeInLock(lockName, txCallback);
+                executeInLock(lockName, txCallback);
+                return;
             } catch (JobPersistenceException jpe) {
                 if(retry % 4 == 0) {
                     schedSignaler.notifySchedulerListenersError("An error occurred while " + txCallback, jpe);
                 }
             } catch (RuntimeException e) {
-                getLog().error("retryExecutInLock: RuntimeException " + e.getMessage(), e);
+                getLog().error("retryExecuteInLock: RuntimeException " + e.getMessage(), e);
             }
             try {
                 Thread.sleep(getRetryInterval()); // retry every N seconds (the db connection must be failed)
@@ -2816,10 +2745,6 @@ public class RedisJobStore implements JobStore, RedisConstants {
      */
     protected interface Callback<T> {
         T execute() throws JobPersistenceException;
-    }
-
-    protected interface Validator<T> {
-        Boolean validate(T result) throws JobPersistenceException;
     }
 
     /**
@@ -2855,14 +2780,14 @@ public class RedisJobStore implements JobStore, RedisConstants {
             this.setDaemon(getMakeThreadsDaemons());
         }
 
-        public void initialize() {
+        private void initialize() {
             this.manage();
 
             ThreadExecutor executor = getThreadExecutor();
             executor.execute(ClusterManager.this);
         }
 
-        public void shutdown() {
+        private void shutdown() {
             shutdown = true;
             this.interrupt();
         }
@@ -2934,12 +2859,12 @@ public class RedisJobStore implements JobStore, RedisConstants {
             this.setDaemon(getMakeThreadsDaemons());
         }
 
-        public void initialize() {
+        private void initialize() {
             ThreadExecutor executor = getThreadExecutor();
             executor.execute(MisfireHandler.this);
         }
 
-        public void shutdown() {
+        private void shutdown() {
             shutdown = true;
             this.interrupt();
         }
@@ -2976,11 +2901,11 @@ public class RedisJobStore implements JobStore, RedisConstants {
                 }
 
                 if (!shutdown) {
-                    long timeToSleep = 50l;  // At least a short pause to help balance threads
+                    long timeToSleep = 50L;  // At least a short pause to help balance threads
                     if (!recoverMisfiredJobsResult.hasMoreMisfiredTriggers()) {
                         timeToSleep = getMisfireThreshold() - (System.currentTimeMillis() - sTime);
                         if (timeToSleep <= 0) {
-                            timeToSleep = 50l;
+                            timeToSleep = 50L;
                         }
 
                         if(numFails > 0) {
