@@ -84,7 +84,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
 
     protected String delegateInitString;
 
-    protected HashMap<String, Calendar> calendarCache = new HashMap<String, Calendar>();
+    protected HashMap<String, Calendar> calendarCache = new HashMap<>();
 
     protected StdRedisDelegate delegate;
 
