@@ -76,7 +76,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
     /**
      * default expire milliseconds
      */
-    protected long timeout = 500;
+    protected long timeout = 30000;
 
     protected String instanceId;
 
