@@ -185,11 +185,6 @@ public class StdRedisDelegate implements RedisConstants, FieldConstants {
         return this;
     }
 
-    public StdRedisDelegate setRedisServerCommands(RedisServerCommands<String, String> redisServerCommands) {
-        this.redisServerCommands = redisServerCommands;
-        return this;
-    }
-
     /**
      * lock
      * @param key
