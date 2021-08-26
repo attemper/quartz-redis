@@ -469,8 +469,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                     .setRedisScriptingCommands(sync)
                     .setRedisHashCommands(sync)
                     .setRedisSetCommands(sync)
-                    .setRedisSortedSetCommands(sync)
-                    .setRedisServerCommands(sync);
+                    .setRedisSortedSetCommands(sync);
         } else if (sentinelNodes != null && sentinelNodes.trim().length() > 0) {
             String[] uris = sentinelNodes.split(",");
             RedisURI.Builder builder = RedisURI.builder()
@@ -506,8 +505,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                     .setRedisScriptingCommands(sync)
                     .setRedisHashCommands(sync)
                     .setRedisSetCommands(sync)
-                    .setRedisSortedSetCommands(sync)
-                    .setRedisServerCommands(sync);
+                    .setRedisSortedSetCommands(sync);
         } else if (uri != null && uri.trim().length() > 0) {
             RedisClient redisClient = RedisClient.create(uri);
             StatefulRedisConnection<String, String> connection = redisClient.connect();
@@ -519,8 +517,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                     .setRedisScriptingCommands(sync)
                     .setRedisHashCommands(sync)
                     .setRedisSetCommands(sync)
-                    .setRedisSortedSetCommands(sync)
-                    .setRedisServerCommands(sync);
+                    .setRedisSortedSetCommands(sync);
         } else {
             RedisURI redisURI = RedisURI.Builder.redis(host, port).withSsl(ssl).withDatabase(database).build();
             if (password != null && !"".equals(password.trim())) {
@@ -536,8 +533,7 @@ public class RedisJobStore implements JobStore, RedisConstants {
                     .setRedisScriptingCommands(sync)
                     .setRedisHashCommands(sync)
                     .setRedisSetCommands(sync)
-                    .setRedisSortedSetCommands(sync)
-                    .setRedisServerCommands(sync);
+                    .setRedisSortedSetCommands(sync);
         }
 
     }
