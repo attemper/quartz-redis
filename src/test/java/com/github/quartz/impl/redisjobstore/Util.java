@@ -1,7 +1,5 @@
 package com.github.quartz.impl.redisjobstore;
 
-import com.zaxxer.hikari.HikariDataSource;
-
 import java.util.Properties;
 
 public class Util {
@@ -41,6 +39,7 @@ public class Util {
         return properties;
     }
 
+    /*
     public static HikariDataSource getDataSource() {
         HikariDataSource dataSource = new HikariDataSource();
         dataSource.setJdbcUrl("jdbc:mysql://localhost:3306/ext?characterEncoding=utf-8");
@@ -50,5 +49,5 @@ public class Util {
         dataSource.setMinimumIdle(10);
         dataSource.setMaximumPoolSize(10);
         return dataSource;
-    }
+    }*/
 }

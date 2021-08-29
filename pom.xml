@@ -13,12 +13,10 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <quartz.version>2.3.2.2</quartz.version>
         <luttuce.core.version>5.0.2.RELEASE</luttuce.core.version>
-        <mysql.connector.version>5.1.27</mysql.connector.version>
-        <hikari.version>2.3.13</hikari.version>
-        <jackson.version>2.10.3</jackson.version>
+        <jackson.version>2.10.5.1</jackson.version>
 
         <slf4j.version>1.7.7</slf4j.version>
-        <log4j.version>2.13.1</log4j.version>
+        <log4j.version>2.13.2</log4j.version>
         <junit-dep.version>4.10</junit-dep.version>
 
         <maven.compiler.plugin.version>2.1</maven.compiler.plugin.version>
@@ -65,19 +63,6 @@
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
             <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>${mysql.connector.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP-java6</artifactId>
-            <version>${hikari.version}</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>

@@ -1,23 +1,19 @@
 package com.github.quartz.impl.redisjobstore;
 
-import com.zaxxer.hikari.HikariDataSource;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.UUID;
+import java.util.Random;
 
 /**
  * @author ldang
  */
 public class HelloJob implements Job {
 
-    public static HikariDataSource dataSource = Util.getDataSource();
+    //public static HikariDataSource dataSource = Util.getDataSource();
 
     private static final String INSERT_INSTANCE = "insert into instance(time, name) values (?, ?)";
 
@@ -31,11 +27,17 @@ public class HelloJob implements Job {
 
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        Date now = new Date();
         String name = context.getJobDetail().getKey().getName();
-        String time = new SimpleDateFormat(yyyyMMddHHmmss).format(now);
-        String start =  new SimpleDateFormat(yyyyMMddHHmmssSSS).format(now);
-        System.out.println(start + "    " + context.getJobDetail().getKey().getName() + "    开始执行");
+        String start =  new SimpleDateFormat(yyyyMMddHHmmssSSS).format(new Date());
+        System.out.println(start + "    " + name + "    开始执行");
+        try {
+            Thread.sleep((new Random().nextInt(3) + 2) * 1000L);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        String end = new SimpleDateFormat(yyyyMMddHHmmss).format(new Date());
+        System.out.println(end + "    " + name + "    结束执行");
+        /*
         Connection connection = null;
         try {
             String id = UUID.randomUUID().toString();
@@ -60,7 +62,6 @@ public class HelloJob implements Job {
             ps3.setString(1, end);
             ps3.setString(2, id);
             ps3.execute();
-            System.out.println(new SimpleDateFormat(yyyyMMddHHmmssSSS).format(new Date()) + "    " + context.getJobDetail().getKey().getName() + "    结束执行");
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
@@ -72,6 +73,6 @@ public class HelloJob implements Job {
                 }
             }
         }
-
+        */
     }
 }
